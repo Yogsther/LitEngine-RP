@@ -57,9 +57,8 @@ public class LitRP extends JPanel {
 
 
     public static void init() throws IOException {
-        rp = new LitRP();
         importTextures();
-
+        rp = new LitRP();
     }
 
     public static void importTextures() throws IOException {
@@ -78,7 +77,6 @@ public class LitRP extends JPanel {
             Texture texture = foreach.next();
             if(texture.source.equals(textureName)) result = texture;
         }
-        if(result == null) System.out.println("is null");
         return result.texture;
     }
 
