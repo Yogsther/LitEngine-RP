@@ -28,6 +28,7 @@ public class LitRP extends JPanel {
     public int camY = (HEIGHT) / 2;
 
     public static LitRP rp;
+    public static Player player;
     public static String title = "LitEngineRP";
 
     ImageIcon img = new ImageIcon("icon.png");
@@ -47,17 +48,12 @@ public class LitRP extends JPanel {
         this.frame.setVisible(true);
         //this.frame.setLayout(new BorderLayout());
         //this.frame.pack();
-        // Import test
-        try {
-            sprite = ImageIO.read(new File("textures/sprite.png"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
 
     public static void init() throws IOException {
         importTextures();
+        player = new Player(0, 0, getTexture("sprite"));
         rp = new LitRP();
     }
 
@@ -85,13 +81,17 @@ public class LitRP extends JPanel {
         return (int)r;
     }
 
-    public static void spawnParticle(){
+    public static void spawnParticle(int x, int y, String color){
         /* Spawn particles on player */
-        BufferedImage sprite = getTexture("sprite");
-        int spriteOffset = sprite.getWidth() / 2;
-        int spread = 7;
-        particles.add(new Particle(randomInt(x + spriteOffset - spread, x + spriteOffset + spread), randomInt(y - spread, y + spread)));
+        particles.add(new Particle(x, y, color));
     }
+
+    public static void spawnParticleOnPlayer(){
+        int spriteOffset = player.sprite.getWidth() / 2;
+        int spread = 10;
+        spawnParticle(randomInt(player.x + spriteOffset - spread, player.x + spriteOffset + spread), player.y, "#599cf4");
+    }
+
 
     public class Listener implements KeyListener {
         @Override
@@ -108,10 +108,20 @@ public class LitRP extends JPanel {
         }
     }
 
-    private static int x = 0;
-    private static int y = 0;
+    public void logic(){
+        // LOGIC
+        int speed = 2;
+        if(keysDown.size() > 1) speed /= 2; /* Slow down if diagonal */
+        /* Player movement */
+        if(keysDown.contains(87)) player.y-=speed;
+        if(keysDown.contains(83)) player.y+=speed;
+        if(keysDown.contains(65)) player.x-=speed;
+        if(keysDown.contains(68)) player.x+=speed;
 
-    BufferedImage sprite;
+        for(int i = 0; i < 2 /* Amount of particles per frame */; i++){
+            spawnParticleOnPlayer();
+        }
+    }
 
     @Override
     public void paintComponent(Graphics g) {
@@ -127,18 +137,11 @@ public class LitRP extends JPanel {
             return;
         }
 
-        /* Logic */
-        int speed = 2;
-        if(keysDown.size() > 1) speed /= 2; /* Slow down if diagonal */
-        /* Player movement */
-        if(keysDown.contains(87)) y-=speed;
-        if(keysDown.contains(83)) y+=speed;
-        if(keysDown.contains(65)) x-=speed;
-        if(keysDown.contains(68)) x+=speed;
+        // LOGIC
 
-        spawnParticle();
+        logic();
 
-
+        // END OF LOGIC
 
         /* Clear background */
         g.setColor(Color.decode("#111111"));
@@ -156,9 +159,11 @@ public class LitRP extends JPanel {
         }
 
 
-        drawImage(getTexture("sprite"), x, y, g);
+        drawImage(player.sprite, player.x, player.y, g);
 
 
+
+        // END OF DRAW
         drawOverlay(g); // Draw GUI
 
         try {
@@ -187,10 +192,19 @@ public class LitRP extends JPanel {
             if(particle.opacity < 0){
                 foreach.remove();
             } else {
-                particle.opacity -= .1;
+                particle.opacity -= .05;
                 particle.lift++;
-
-                drawImage(getTexture("flair"), particle.x, particle.y - particle.lift, g);
+                int[] positionsX = {1, 0, 1, 2, 1};
+                int[] positionsY = {0, 1, 1, 1, 2};
+                for(int i = 0; i < positionsX.length; i++){
+                    int multiplier = 1;
+                    if(i == 2) multiplier = 3;
+                    int alpha = (int)Math.round(255 * particle.opacity * multiplier);
+                    if(alpha > 255) alpha = 255;
+                    if(alpha < 0) alpha = 0;
+                    g.setColor(new Color(particle.color[0], particle.color[1], particle.color[2], alpha));
+                    g.fillRect((particle.x + positionsX[i] + camX) * SCALE, (particle.y + positionsY[i] - particle.lift + camY + 10) * SCALE, 1 * SCALE, 1 * SCALE);
+                }
             }
         }
     }
