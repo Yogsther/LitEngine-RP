@@ -2,7 +2,7 @@
 
 #### [Java Docs](https://yogsther.github.io/LitEngine-RP/)
 
-![Screenshot of devtools](https://i.imgur.com/xl7OgdP.png)
+![Screenshot of devtools](https://i.imgur.com/Mn1dib1.png)
 
 #### Controlls: 
 * WASD - Controll the player
