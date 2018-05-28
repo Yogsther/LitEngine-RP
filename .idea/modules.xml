@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/LitEngineRP.iml" filepath="$PROJECT_DIR$/LitEngineRP.iml" />
+      <module fileurl="file://$PROJECT_DIR$/LitEngine-RP.iml" filepath="$PROJECT_DIR$/LitEngine-RP.iml" />
     </modules>
   </component>
 </project>

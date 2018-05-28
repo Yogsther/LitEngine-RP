@@ -1,10 +1,13 @@
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -35,7 +38,10 @@ public class LitRP extends JPanel {
 
     public static Set<Integer> keysDown = new HashSet<>();
 
+    public static boolean displayDevTools = false;
+
     public LitRP(){
+        /* Set up canvas and JFrame */
         this.frame = new JFrame(title);
         this.frame.setSize(WIDTH * SCALE, HEIGHT * SCALE);
         this.frame.add(this);
@@ -52,21 +58,33 @@ public class LitRP extends JPanel {
 
 
     public static void init() throws IOException {
+        /**
+         * Initiate the game, run this when you want your game to start running.
+         */
         importTextures();
         player = new Player(0, 0, getTexture("sprite"));
         rp = new LitRP();
     }
 
     public static void importTextures() throws IOException {
-        String[] texturesToImport = Game.textures;
+        /**
+         * Imports all textures provided in Game.java
+         */
+        String[] texturesToImport = Game.textures; // Get textures from Game.java
         for(int i = 0; i < texturesToImport.length; i++){
+            // Loop through and import each texture.
             String source = texturesToImport[i].substring(0, texturesToImport[i].indexOf('.'));
             textures.add(new Texture(source, ImageIO.read(new File("textures/" + texturesToImport[i]))));
         }
     }
 
     public static BufferedImage getTexture(String textureName){
-
+        /**
+         * Get a texture from source String.
+         * @param textureName name of the texture.
+         *
+         * @return the texture.
+         */
         Iterator<Texture> foreach = textures.iterator();
         Texture result = null;
         while(foreach.hasNext()){
@@ -77,16 +95,34 @@ public class LitRP extends JPanel {
     }
 
     public static int randomInt(int low, int high){
+        /**
+         * Get a random int between low and high
+         *
+         * @param low Set the lower range.
+         * @param high Set the higher range.
+         *
+         * @return random int between low and high
+         */
         double r = Math.floor(Math.random() * (high-low)) + low;
         return (int)r;
     }
 
     public static void spawnParticle(int x, int y, String color){
+        /**
+         * Spawn a particle at x,y with a custom color.
+         *
+         * @param x position x for the particle
+         * @param y position y for the particle
+         * @param color the color for your particle (HEX)
+         */
         /* Spawn particles on player */
         particles.add(new Particle(x, y, color));
     }
 
     public static void spawnParticleOnPlayer(){
+        /**
+         * Spawns particles on the player if any are active.
+         */
         int spriteOffset = player.sprite.getWidth() / 2;
         int spread = 10;
         spawnParticle(randomInt(player.x + spriteOffset - spread, player.x + spriteOffset + spread), player.y, "#599cf4");
@@ -100,6 +136,40 @@ public class LitRP extends JPanel {
         @Override
         public void keyPressed(KeyEvent e) {
             if(!keysDown.contains(e.getKeyCode())) keysDown.add(e.getKeyCode());
+            if(e.getKeyCode() == 69){
+                /* Key E to open the map-editor */
+                displayDevTools = !displayDevTools; // Toggle
+            }
+            if(displayDevTools){
+                System.out.println(e.getKeyCode()); // Print keycode in devmode
+                /* Place tree */
+                if(e.getKeyCode() == 10) Game.map.add(new GameObject("wood", player.x, player.y, true, 0.2f));
+
+                if(e.getKeyCode() == 67){
+                    /* Copy map to clipboard */
+                    String mapString = "/* LitEngineRP Map - Size: " + Game.map.size() + " */\n";
+                    Iterator<GameObject> foreachMAP = Game.map.iterator();
+                    while(foreachMAP.hasNext()){
+                        /* Draw each GameObject (obj) */
+                        GameObject obj = foreachMAP.next();
+                        mapString += "Game.map.add(new GameObject(\"" + obj.sprite + "\", " + obj.x + ", " + obj.y + ", " + obj.collisions + ", " + obj.scale + "f));\n";
+                    }
+                    StringSelection stringSelection = new StringSelection(mapString);
+                    Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                    clipboard.setContents(stringSelection, null);
+
+                }
+                if(e.getKeyCode() == 82){
+                    /* Reset map */
+                    Game.map.clear();
+                }
+                if(e.getKeyCode() == 88){
+                    /* Delete last placed object */
+                    if(Game.map.size() > 0) Game.map.remove(Game.map.size()-1);
+                }
+            }
+
+
         }
 
         @Override
@@ -108,10 +178,32 @@ public class LitRP extends JPanel {
         }
     }
 
+    public boolean checkCollision(GameObject obj) {
+        /**
+         * Check if the player is colliding with
+         * a GameObject.
+         */
+        if (player.x < obj.x + getTexture(obj.sprite).getWidth() * obj.scale &&
+                player.x + player.sprite.getWidth() > obj.x &&
+                player.y < obj.y + getTexture(obj.sprite).getHeight() * obj.scale &&
+                player.sprite.getHeight() + player.y > obj.y) {
+
+            return true;
+        }
+        return false;
+    }
+
     public void logic(){
+        /**
+         * Logic method - Runs each frame
+         */
         // LOGIC
         int speed = 2;
         if(keysDown.size() > 1) speed /= 2; /* Slow down if diagonal */
+        /* Save player position, if there is a collision, the player position will be reverted */
+        int pastX = player.x;
+        int pastY = player.y;
+
         /* Player movement */
         if(keysDown.contains(87)) player.y-=speed;
         if(keysDown.contains(83)) player.y+=speed;
@@ -121,6 +213,18 @@ public class LitRP extends JPanel {
         for(int i = 0; i < 2 /* Amount of particles per frame */; i++){
             spawnParticleOnPlayer();
         }
+
+        /* Draw out map */
+        Iterator<GameObject> foreachMAP = Game.map.iterator();
+        while(foreachMAP.hasNext()){
+            /* Draw each GameObject (obj) */
+            GameObject obj = foreachMAP.next();
+            if(!displayDevTools && checkCollision(obj)){
+                player.x = pastX;
+                player.y = pastY;
+            }
+        }
+
     }
 
     @Override
@@ -147,20 +251,28 @@ public class LitRP extends JPanel {
         g.setColor(Color.decode("#111111"));
         g.fillRect(0, 0, WIDTH * SCALE, HEIGHT * SCALE);
 
-        // TODO: Render tiles and background
+        /* Draw out map */
+        Iterator<GameObject> foreachMAP = Game.map.iterator();
+        while(foreachMAP.hasNext()){
+            /* Draw each GameObject (obj) */
+            GameObject obj = foreachMAP.next();
+            drawImage(getTexture(obj.sprite), obj.x, obj.y, g, obj.scale);
+        }
+
 
         renderParticles(g); // Render particles behind player and NPCs and GUI
 
         /* Draw NPCs */
-        Iterator<NPC> foreach = npcs.iterator();
-        while(foreach.hasNext()){
-            NPC npc = foreach.next();
+        Iterator<NPC> foreachNPC = npcs.iterator();
+        while(foreachNPC.hasNext()){
+            NPC npc = foreachNPC.next();
             drawImage(getTexture("sprite"), npc.x, npc.y, g);
         }
 
 
         drawImage(player.sprite, player.x, player.y, g);
 
+        Game.draw(g);
 
 
         // END OF DRAW
@@ -176,7 +288,14 @@ public class LitRP extends JPanel {
     }
 
     public void drawImage(BufferedImage img, int x, int y, Graphics g){
-        /* This method renders relative to scale and camera position. */
+        /**
+         * Draw an image from BufferedImage on the canvas. This will account for camera and scale.
+         *
+         * @param img the image you want to print, use getTexture() to get this.
+         * @param x position x for the image left top
+         * @param y position y for the image left top
+         * @param g graphics component
+         */
         try{
             g.drawImage(img, (x + camX) * SCALE, (y + camY) * SCALE, img.getWidth() * SCALE, img.getHeight() * SCALE, this);
         } catch(NullPointerException e){
@@ -185,7 +304,28 @@ public class LitRP extends JPanel {
 
     }
 
+    public void drawImage(BufferedImage img, int x, int y, Graphics g, float scale){
+        /**
+         * Draw an image from BufferedImage on the canvas. This will account for camera and scale.
+         *
+         * @param img the image you want to print, use getTexture() to get this.
+         * @param x position x for the image left top
+         * @param y position y for the image left top
+         * @param g graphics component
+         * @param scale Scale of the image, proportional to the global SCALE, default would be 1.0
+         */
+        try{
+            g.drawImage(img, (x + camX) * SCALE, Math.round((y + camY) * SCALE), Math.round(img.getWidth() * SCALE * scale), Math.round(img.getHeight() * SCALE * scale), this);
+        } catch(NullPointerException e){
+            System.out.println("Problem drawing image. " + e.getMessage());
+        }
+
+    }
+
     public void renderParticles(Graphics g){
+        /**
+         * Renders and moves all active particles
+         */
         Iterator<Particle> foreach = particles.iterator();
         while(foreach.hasNext()){
             Particle particle = foreach.next();
@@ -212,10 +352,19 @@ public class LitRP extends JPanel {
     public static void addNPC(int x, int y, BufferedImage img){ npcs.add(new NPC(x, y, img)); }
 
     public void drawOverlay(Graphics g){
+        /**
+         * Draws overlay, last in the render loop
+         */
         String printText = "LitEngineRP";
         g.setColor(Color.WHITE);
         g.setFont(new Font("Ubuntu", Font.BOLD, 20));
         g.drawString(printText,(WIDTH * SCALE) - (printText.length() * 15), (HEIGHT * SCALE) - 75);
+        if(displayDevTools){
+            String[] instructions = {"ENTER - Place tree", "E - Toggle dev tools", "C - Copy map", "X - Delete last","R - Reset map","Maps size: " + Game.map.size()};
+            for(int i = 0; i < instructions.length; i++){
+                g.drawString(instructions[i], (WIDTH * SCALE) - 200, 50 + (i*20));
+            }
+        }
     }
 
 }

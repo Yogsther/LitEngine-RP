@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="LitEngineRP">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/out/artifacts/LitEngineRP_jar/LitEngineRP.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
