@@ -19,17 +19,18 @@
 	* Up / Down arrow - Scale (in-progress)
 
 ##### TODO: 
-- [ ] Directional collisions
-- [ ] Add a mini-map
 - [x] Swap option for objects in the map editor
 - [x] Camera movement with the player
 - [x] More textures and objects
+- [ ] Directional collisions
+- [ ] Add a mini-map
 - [ ] Make a bigger map
 
 #### Creating maps and editing maps
 
 When you have edited a map, hit C to copy the map. Then take that code and run it to load the map.
 
+Example of what that would look like:
 ```java
 /* LitEngineRP Map - Size: 7 */
 Game.map.add(new GameObject("wood", -22, 40, true, 1.0f));
